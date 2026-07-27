@@ -42,6 +42,12 @@ small { color: #6b7280; }
 </header>
 
 <div class="container">
+  <div class="actions" style="margin-bottom:16px;">
+    <button id="settingsToggle" class="secondary" style="max-width:180px;" onclick="toggleSettings()">⚙️ Settings</button>
+    <button id="historyToggle" class="secondary" style="max-width:220px;" onclick="toggleHistory()">📋 Winner History</button>
+  </div>
+
+  <div id="settingsPanel" style="display:none;">
   <div class="grid">
     <section class="card">
       <h2>Participants</h2>
@@ -84,6 +90,7 @@ small { color: #6b7280; }
       <p><small>Previous winners are automatically excluded from future draws.</small></p>
     </section>
   </div>
+  </div>
 
   <section class="card" style="margin-top:16px;">
     <h2>Current Draw</h2>
@@ -91,6 +98,7 @@ small { color: #6b7280; }
     <div id="winnerList"></div>
   </section>
 
+  <div id="winnerHistoryPanel" style="display:none;">
   <section class="card" style="margin-top:16px;">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
       <h2 style="margin:0;">Winner History</h2>
@@ -101,6 +109,7 @@ small { color: #6b7280; }
       <tbody id="historyBody"><tr><td colspan="6">No winners yet.</td></tr></tbody>
     </table>
   </section>
+  </div>
 </div>
 
 <script>
@@ -175,6 +184,22 @@ function updatePrizeInfo() {
   const info = document.getElementById('prizeInfo');
   if (i === '') info.innerHTML = '<small>No prize selected.</small>';
   else info.innerHTML = `<strong>${prizes[i].name}</strong> — ${prizes[i].quantity} available`;
+}
+
+function toggleSettings() {
+  const panel = document.getElementById('settingsPanel');
+  const button = document.getElementById('settingsToggle');
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? 'block' : 'none';
+  button.textContent = isHidden ? '✖️ Close Settings' : '⚙️ Settings';
+}
+
+function toggleHistory() {
+  const panel = document.getElementById('winnerHistoryPanel');
+  const button = document.getElementById('historyToggle');
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? 'block' : 'none';
+  button.textContent = isHidden ? '✖️ Close Winner History' : '📋 Winner History';
 }
 
 function clearParticipants() { participants = []; updateUI(); }
