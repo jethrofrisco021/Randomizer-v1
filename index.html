@@ -91,28 +91,33 @@ small { color: #6b7280; }
         <button onclick="loadSamplePrizes()">Load Sample</button>
         <button class="secondary" onclick="clearPrizes()">Clear</button>
       </div>
-      <label for="prizeSelect">Select Prize</label>
-      <select id="prizeSelect" onchange="updatePrizeInfo()">
-        <option value="">-- Select Prize --</option>
-      </select>
-      <p id="prizeInfo"><small>No prize selected.</small></p>
     </section>
 
-    <section class="card">
-      <h2>Draw Settings</h2>
-      <label for="drawCount">Number of Winners</label>
-      <input type="number" id="drawCount" min="1" value="1">
-      <div class="actions">
-        <button class="success" id="drawBtn" onclick="drawWinners()">DRAW WINNERS</button>
-        <button class="danger" onclick="resetAll()">Reset All</button>
-      </div>
-      <p><small>Previous winners are automatically excluded from future draws.</small></p>
-    </section>
+
   </div>
   </div>
 
   <section class="card" style="margin-top:16px;">
     <h2>Current Draw</h2>
+
+    <div class="grid" style="margin-top:16px;">
+      <div>
+        <label for="prizeSelect">Select Prize</label>
+        <select id="prizeSelect" onchange="updatePrizeInfo()">
+          <option value="">-- Select Prize --</option>
+        </select>
+        <p id="prizeInfo"><small>No prize selected.</small></p>
+      </div>
+
+      <div>
+        <label for="drawCount">Number of Winners</label>
+        <input type="number" id="drawCount" min="1" value="1">
+      </div>
+    </div>
+
+    <button class="success" id="drawBtn" onclick="drawWinners()" style="margin-top:16px;font-size:20px;padding:16px;">
+      🎉 DRAW WINNERS
+    </button>
     <div class="result" id="drawResult">Select a prize and click DRAW WINNERS</div>
     <div id="winnerList"></div>
   </section>
