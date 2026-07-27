@@ -33,15 +33,34 @@ th { background: #f9fafb; }
 .winner { padding: 10px; margin: 6px 0; background: #ecfdf5; border-left: 4px solid #059669; border-radius: 6px; }
 small { color: #6b7280; }
 @media (max-width: 600px) { .stats { grid-template-columns: 1fr; } }
+
+.topbar{background:white;color:#111827;padding:18px 34px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #e5e7eb;gap:16px}.brand{font-size:24px;font-weight:700;display:flex;align-items:center;gap:10px}.top-actions{display:flex;gap:10px}.nav-btn{width:auto;background:white;color:#1f2937;border:1px solid #d1d5db;padding:11px 18px;border-radius:10px}.nav-btn:hover{background:#f9fafb}.hero-card{background:white;border-radius:16px;padding:58px 24px;text-align:center;box-shadow:0 5px 18px rgba(0,0,0,.08)}.hero-card h2{font-size:42px;margin:12px 0}.hero-card p{font-size:20px;color:#475569}.draw-main-btn{width:min(430px,100%);font-size:25px;padding:22px;border-radius:12px;background:#16a34a;margin-top:22px}.stats-row{display:grid;grid-template-columns:repeat(4,1fr);background:white;border-radius:16px;margin-top:24px;padding:24px;box-shadow:0 5px 18px rgba(0,0,0,.08)}.stat-item{text-align:center;border-right:1px solid #e5e7eb}.stat-item:last-child{border-right:0}.stat-item strong{display:block;font-size:36px}.stat-item span{font-size:18px;color:#475569}.info-box{margin-top:24px;padding:20px;border:1px solid #bfdbfe;background:#eff6ff;border-radius:12px;color:#1e3a8a}@media(max-width:700px){.topbar{flex-direction:column;align-items:stretch}.top-actions{justify-content:stretch}.nav-btn{flex:1}.brand{font-size:20px}.stats-row{grid-template-columns:repeat(2,1fr);gap:20px}.stat-item:nth-child(2){border-right:0}.stat-item:nth-child(3),.stat-item:nth-child(4){border-top:1px solid #e5e7eb;padding-top:20px}}
 </style>
 </head>
 <body>
-<header>
-  <h1>Random Draw & Raffle Application</h1>
-  <p>Standalone offline raffle and winner selection system</p>
+<header class="topbar">
+  <div class="brand">🏆 <span>Random Draw & Raffle Application</span></div>
+  <div class="top-actions">
+    <button class="nav-btn" onclick="toggleSettings()">⚙️ Settings</button>
+    <button class="nav-btn" onclick="toggleHistory()">📋 Winner History</button>
+  </div>
 </header>
 
 <div class="container">
+  <section class="hero-card">
+    <div style="font-size:56px;">🏆</div>
+    <h2>Ready to Draw</h2>
+    <p>Click the button below to start drawing winners.</p>
+    <button class="success draw-main-btn" onclick="drawWinners()">✨ DRAW WINNERS</button>
+  </section>
+  <section class="stats-row">
+    <div class="stat-item"><strong id="dashboardParticipants">0</strong><span>👥 Participants</span></div>
+    <div class="stat-item"><strong id="dashboardEligible">0</strong><span>✅ Eligible</span></div>
+    <div class="stat-item"><strong id="dashboardPrizes">0</strong><span>🎁 Prizes</span></div>
+    <div class="stat-item"><strong id="dashboardWinners">0</strong><span>👑 Winners</span></div>
+  </section>
+  <div class="info-box">ℹ️ Add participants and prizes in <strong>Settings</strong> to get started.</div>
+
   <div class="actions" style="margin-bottom:16px;">
     <button id="settingsToggle" class="secondary" style="max-width:180px;" onclick="toggleSettings()">⚙️ Settings</button>
     <button id="historyToggle" class="secondary" style="max-width:220px;" onclick="toggleHistory()">📋 Winner History</button>
@@ -211,6 +230,10 @@ function updateUI() {
   document.getElementById('participantCount').textContent = participants.length;
   document.getElementById('eligibleCount').textContent = eligible.length;
   document.getElementById('winnerCount').textContent = winners.length;
+  const dp=document.getElementById('dashboardParticipants'); if(dp) dp.textContent=participants.length;
+  const de=document.getElementById('dashboardEligible'); if(de) de.textContent=eligible.length;
+  const dw=document.getElementById('dashboardWinners'); if(dw) dw.textContent=winners.length;
+  const dpr=document.getElementById('dashboardPrizes'); if(dpr) dpr.textContent=prizes.reduce((s,p)=>s+p.quantity,0);
 }
 
 function drawWinners() {
