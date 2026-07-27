@@ -53,6 +53,16 @@ small { color: #6b7280; }
       <h2>Participants</h2>
       <input type="file" id="participantFile" accept=".csv,.xlsx,.xls">
       <small>CSV format: ID, Name, Department (optional)</small>
+      <div style="margin-top:14px;padding:12px;background:#f9fafb;border-radius:8px;">
+        <strong>Manually Add Participant</strong>
+        <input id="manualParticipantId" placeholder="Participant ID">
+        <input id="manualParticipantName" placeholder="Participant Name">
+        <input id="manualParticipantDepartment" placeholder="Department (optional)">
+        <button onclick="addParticipantManually()" style="margin-top:8px;">Add Participant</button>
+      </div>
+      <div class="actions">
+        <button onclick="downloadParticipantTemplate()" class="secondary">⬇️ Download Participant Template</button>
+      </div>
       <div class="actions">
         <button onclick="loadSampleParticipants()">Load Sample</button>
         <button class="secondary" onclick="clearParticipants()">Clear</button>
@@ -68,6 +78,15 @@ small { color: #6b7280; }
       <h2>Prizes</h2>
       <input type="file" id="prizeFile" accept=".csv,.xlsx,.xls">
       <small>CSV format: Prize, Quantity</small>
+      <div style="margin-top:14px;padding:12px;background:#f9fafb;border-radius:8px;">
+        <strong>Manually Add Prize</strong>
+        <input id="manualPrizeName" placeholder="Prize Name">
+        <input id="manualPrizeQuantity" type="number" min="1" value="1" placeholder="Quantity">
+        <button onclick="addPrizeManually()" style="margin-top:8px;">Add Prize</button>
+      </div>
+      <div class="actions">
+        <button onclick="downloadPrizeTemplate()" class="secondary">⬇️ Download Prize Template</button>
+      </div>
       <div class="actions">
         <button onclick="loadSamplePrizes()">Load Sample</button>
         <button class="secondary" onclick="clearPrizes()">Clear</button>
@@ -184,6 +203,73 @@ function updatePrizeInfo() {
   const info = document.getElementById('prizeInfo');
   if (i === '') info.innerHTML = '<small>No prize selected.</small>';
   else info.innerHTML = `<strong>${prizes[i].name}</strong> — ${prizes[i].quantity} available`;
+}
+
+
+function addParticipantManually() {
+  const idInput = document.getElementById('manualParticipantId');
+  const nameInput = document.getElementById('manualParticipantName');
+  const deptInput = document.getElementById('manualParticipantDepartment');
+
+  const id = idInput.value.trim() || `P${String(participants.length + 1).padStart(4,'0')}`;
+  const name = nameInput.value.trim();
+  const department = deptInput.value.trim();
+
+  if (!name) return alert('Please enter the participant name.');
+  if (participants.some(p => p.id.toLowerCase() === id.toLowerCase())) {
+    return alert('A participant with this ID already exists.');
+  }
+
+  participants.push({ id, name, department });
+  idInput.value = '';
+  nameInput.value = '';
+  deptInput.value = '';
+  updateUI();
+}
+
+function addPrizeManually() {
+  const nameInput = document.getElementById('manualPrizeName');
+  const quantityInput = document.getElementById('manualPrizeQuantity');
+
+  const name = nameInput.value.trim();
+  const quantity = parseInt(quantityInput.value);
+
+  if (!name) return alert('Please enter the prize name.');
+  if (!Number.isInteger(quantity) || quantity < 1) {
+    return alert('Please enter a valid quantity.');
+  }
+
+  prizes.push({ name, quantity });
+  nameInput.value = '';
+  quantityInput.value = '1';
+  updatePrizeSelect();
+}
+
+function downloadCSV(filename, rows) {
+  const csv = rows.map(row =>
+    row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(',')
+  ).join('\\n');
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function downloadParticipantTemplate() {
+  downloadCSV('participant_template.csv', [
+    ['ID', 'Name', 'Department'],
+    ['EMP001', 'Juan Dela Cruz', 'IT']
+  ]);
+}
+
+function downloadPrizeTemplate() {
+  downloadCSV('prize_template.csv', [
+    ['Prize', 'Quantity'],
+    ['Grand Prize', '1']
+  ]);
 }
 
 function toggleSettings() {
