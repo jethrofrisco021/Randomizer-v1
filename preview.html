@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Random Draw & Raffle App</title>
+<style>
+:root { font-family: Arial, sans-serif; color: #1f2937; background: #f3f4f6; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+header { background: #111827; color: white; padding: 24px; text-align: center; }
+.container { max-width: 1200px; margin: 24px auto; padding: 0 16px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+.card { background: white; border-radius: 12px; padding: 20px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+h2 { margin-top: 0; }
+label { display: block; font-weight: bold; margin: 10px 0 6px; }
+input, select, button { width: 100%; padding: 10px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 14px; }
+button { cursor: pointer; background: #2563eb; color: white; border: 0; font-weight: bold; }
+button:hover { opacity: .9; }
+button.secondary { background: #6b7280; }
+button.success { background: #059669; }
+button.danger { background: #dc2626; }
+button:disabled { opacity: .5; cursor: not-allowed; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.actions button { flex: 1; min-width: 130px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 12px; }
+.stat { background: #f9fafb; border-radius: 8px; padding: 12px; text-align: center; }
+.stat strong { display: block; font-size: 24px; }
+table { width: 100%; border-collapse: collapse; margin-top: 12px; }
+th, td { padding: 10px; border-bottom: 1px solid #e5e7eb; text-align: left; }
+th { background: #f9fafb; }
+.result { min-height: 160px; display: flex; align-items: center; justify-content: center; text-align: center; border: 2px dashed #d1d5db; border-radius: 12px; padding: 20px; font-size: 28px; font-weight: bold; }
+.winner { padding: 10px; margin: 6px 0; background: #ecfdf5; border-left: 4px solid #059669; border-radius: 6px; }
+small { color: #6b7280; }
+@media (max-width: 600px) { .stats { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Random Draw & Raffle Application</h1>
+  <p>Standalone offline raffle and winner selection system</p>
+</header>
+
+<div class="container">
+  <div class="actions" style="margin-bottom:16px;">
+    <button id="settingsToggle" class="secondary" style="max-width:180px;" onclick="toggleSettings()">⚙️ Settings</button>
+    <button id="historyToggle" class="secondary" style="max-width:220px;" onclick="toggleHistory()">📋 Winner History</button>
+  </div>
+
+  <div id="settingsPanel" style="display:none;">
+  <div class="grid">
+    <section class="card">
+      <h2>Participants</h2>
+      <input type="file" id="participantFile" accept=".csv,.xlsx,.xls">
+      <small>CSV format: ID, Name, Department (optional)</small>
+      <div class="actions">
+        <button onclick="loadSampleParticipants()">Load Sample</button>
+        <button class="secondary" onclick="clearParticipants()">Clear</button>
+      </div>
+      <div class="stats">
+        <div class="stat"><strong id="participantCount">0</strong>Participants</div>
+        <div class="stat"><strong id="eligibleCount">0</strong>Eligible</div>
+        <div class="stat"><strong id="winnerCount">0</strong>Winners</div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Prizes</h2>
+      <input type="file" id="prizeFile" accept=".csv,.xlsx,.xls">
+      <small>CSV format: Prize, Quantity</small>
+      <div class="actions">
+        <button onclick="loadSamplePrizes()">Load Sample</button>
+        <button class="secondary" onclick="clearPrizes()">Clear</button>
+      </div>
+      <label for="prizeSelect">Select Prize</label>
+      <select id="prizeSelect" onchange="updatePrizeInfo()">
+        <option value="">-- Select Prize --</option>
+      </select>
+      <p id="prizeInfo"><small>No prize selected.</small></p>
+    </section>
+
+    <section class="card">
+      <h2>Draw Settings</h2>
+      <label for="drawCount">Number of Winners</label>
+      <input type="number" id="drawCount" min="1" value="1">
+      <div class="actions">
+        <button class="success" id="drawBtn" onclick="drawWinners()">DRAW WINNERS</button>
+        <button class="danger" onclick="resetAll()">Reset All</button>
+      </div>
+      <p><small>Previous winners are automatically excluded from future draws.</small></p>
+    </section>
+  </div>
+  </div>
+
+  <section class="card" style="margin-top:16px;">
+    <h2>Current Draw</h2>
+    <div class="result" id="drawResult">Select a prize and click DRAW WINNERS</div>
+    <div id="winnerList"></div>
+  </section>
+
+  <div id="winnerHistoryPanel" style="display:none;">
+  <section class="card" style="margin-top:16px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+      <h2 style="margin:0;">Winner History</h2>
+      <button class="secondary" style="width:auto;padding:10px 16px;" onclick="exportWinners()">Export Winners CSV</button>
+    </div>
+    <table>
+      <thead><tr><th>#</th><th>Participant ID</th><th>Name</th><th>Department</th><th>Prize</th><th>Date & Time</th></tr></thead>
+      <tbody id="historyBody"><tr><td colspan="6">No winners yet.</td></tr></tbody>
+    </table>
+  </section>
+  </div>
+</div>
+
+<script>
+let participants = [];
+let prizes = [];
+let winners = [];
+
+const participantFile = document.getElementById('participantFile');
+const prizeFile = document.getElementById('prizeFile');
+
+participantFile.addEventListener('change', e => readCSV(e.target.files[0], rows => {
+  participants = rows.map((r, i) => ({
+    id: r[0] || `P${String(i+1).padStart(4,'0')}`,
+    name: r[1] || r[0] || 'Unnamed Participant',
+    department: r[2] || ''
+  })).filter(x => x.name.trim());
+  updateUI();
+}));
+
+prizeFile.addEventListener('change', e => readCSV(e.target.files[0], rows => {
+  prizes = rows.map(r => ({ name: r[0], quantity: Math.max(0, parseInt(r[1] || 1)) }))
+    .filter(x => x.name);
+  updatePrizeSelect();
+}));
+
+function readCSV(file, callback) {
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split(/\r?\n/).filter(x => x.trim());
+    const rows = lines.map(line => line.split(',').map(x => x.trim().replace(/^"|"$/g,'')));
+    if (rows.length && /^(id|participant|name|prize)/i.test(rows[0][0])) rows.shift();
+    callback(rows);
+  };
+  reader.readAsText(file);
+}
+
+function loadSampleParticipants() {
+  participants = [
+    {id:'EMP001', name:'Juan Dela Cruz', department:'IT'},
+    {id:'EMP002', name:'Maria Santos', department:'Finance'},
+    {id:'EMP003', name:'Pedro Reyes', department:'Operations'},
+    {id:'EMP004', name:'Ana Garcia', department:'HR'},
+    {id:'EMP005', name:'Luis Mendoza', department:'IT'}
+  ];
+  updateUI();
+}
+
+function loadSamplePrizes() {
+  prizes = [
+    {name:'Grand Prize', quantity:1},
+    {name:'Second Prize', quantity:2},
+    {name:'Consolation Prize', quantity:5}
+  ];
+  updatePrizeSelect();
+}
+
+function updatePrizeSelect() {
+  const select = document.getElementById('prizeSelect');
+  select.innerHTML = '<option value="">-- Select Prize --</option>';
+  prizes.forEach((p,i) => {
+    const opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = `${p.name} (${p.quantity} available)`;
+    select.appendChild(opt);
+  });
+  updatePrizeInfo();
+}
+
+function updatePrizeInfo() {
+  const i = document.getElementById('prizeSelect').value;
+  const info = document.getElementById('prizeInfo');
+  if (i === '') info.innerHTML = '<small>No prize selected.</small>';
+  else info.innerHTML = `<strong>${prizes[i].name}</strong> — ${prizes[i].quantity} available`;
+}
+
+function toggleSettings() {
+  const panel = document.getElementById('settingsPanel');
+  const button = document.getElementById('settingsToggle');
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? 'block' : 'none';
+  button.textContent = isHidden ? '✖️ Close Settings' : '⚙️ Settings';
+}
+
+function toggleHistory() {
+  const panel = document.getElementById('winnerHistoryPanel');
+  const button = document.getElementById('historyToggle');
+  const isHidden = panel.style.display === 'none';
+  panel.style.display = isHidden ? 'block' : 'none';
+  button.textContent = isHidden ? '✖️ Close Winner History' : '📋 Winner History';
+}
+
+function clearParticipants() { participants = []; updateUI(); }
+function clearPrizes() { prizes = []; updatePrizeSelect(); }
+
+function updateUI() {
+  const winnerIds = new Set(winners.map(w => w.id));
+  const eligible = participants.filter(p => !winnerIds.has(p.id));
+  document.getElementById('participantCount').textContent = participants.length;
+  document.getElementById('eligibleCount').textContent = eligible.length;
+  document.getElementById('winnerCount').textContent = winners.length;
+}
+
+function drawWinners() {
+  const prizeIndex = document.getElementById('prizeSelect').value;
+  const count = parseInt(document.getElementById('drawCount').value);
+  const result = document.getElementById('drawResult');
+
+  if (prizeIndex === '') return alert('Please select a prize.');
+  if (!Number.isInteger(count) || count < 1) return alert('Please enter a valid number of winners.');
+
+  const prize = prizes[prizeIndex];
+  const winnerIds = new Set(winners.map(w => w.id));
+  const eligible = participants.filter(p => !winnerIds.has(p.id));
+
+  if (!eligible.length) return alert('No eligible participants remain.');
+  if (count > eligible.length) return alert(`Only ${eligible.length} eligible participant(s) remain.`);
+  if (count > prize.quantity) return alert(`The selected prize only has ${prize.quantity} available.`);
+
+  result.textContent = 'Drawing...';
+  document.getElementById('drawBtn').disabled = true;
+
+  setTimeout(() => {
+    const shuffled = [...eligible].sort(() => Math.random() - 0.5);
+    const selected = shuffled.slice(0, count);
+    const now = new Date().toLocaleString();
+
+    selected.forEach(p => winners.push({
+      ...p, prize: prize.name, date: now
+    }));
+    prize.quantity -= count;
+
+    result.innerHTML = selected.map(p => `<div class="winner">🎉 ${escapeHTML(p.name)}<br><small>${escapeHTML(prize.name)}</small></div>`).join('');
+    updatePrizeSelect();
+    updateUI();
+    renderHistory();
+    document.getElementById('drawBtn').disabled = false;
+  }, 1200);
+}
+
+function renderHistory() {
+  const body = document.getElementById('historyBody');
+  if (!winners.length) {
+    body.innerHTML = '<tr><td colspan="6">No winners yet.</td></tr>';
+    return;
+  }
+  body.innerHTML = winners.map((w,i) => `<tr>
+    <td>${i+1}</td><td>${escapeHTML(w.id)}</td><td>${escapeHTML(w.name)}</td>
+    <td>${escapeHTML(w.department)}</td><td>${escapeHTML(w.prize)}</td><td>${escapeHTML(w.date)}</td>
+  </tr>`).join('');
+}
+
+function exportWinners() {
+  if (!winners.length) return alert('There are no winners to export.');
+  const header = ['No.','Participant ID','Name','Department','Prize','Date & Time'];
+  const rows = winners.map((w,i) => [i+1,w.id,w.name,w.department,w.prize,w.date]);
+  const csv = [header, ...rows].map(row => row.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'raffle_winners.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function resetAll() {
+  if (!confirm('Reset all participants, prizes, and winner history?')) return;
+  participants = []; prizes = []; winners = [];
+  document.getElementById('participantFile').value = '';
+  document.getElementById('prizeFile').value = '';
+  document.getElementById('drawResult').textContent = 'Select a prize and click DRAW WINNERS';
+  updatePrizeSelect(); updateUI(); renderHistory();
+}
+
+function escapeHTML(str) {
+  return String(str).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+}
+
+updateUI();
+renderHistory();
+</script>
+</body>
+</html>
